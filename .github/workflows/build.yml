@@ -1,6 +1,6 @@
 name: Build and Release Spheres of Power
 
-# Триггер: запускаем сборку при пушах в main, а также ВСЕГДА, когда создается тег, начинающийся на 'v' (например, v1.0.0)
+# Рабочий процесс запускается при пушах в main/master, а также при создании тегов версий (например, v1.0.0)
 on:
   push:
     branches: [ "main", "master" ]
@@ -14,34 +14,35 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    # Шаг 1: Скачиваем исходный код
+    # Шаг 1: Скачиваем исходный код репозитория
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Шаг 2: Устанавливаем Python
+    # Шаг 2: Разворачиваем Python нужной версии
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        cache: 'pip'
+        cache: 'pip' # Включает встроенное кэширование пакетов pip
 
-    # Шаг 3: Устанавливаем зависимости и PyInstaller
-    - name: Install dependencies
+    # Шаг 3: Обновляем pip и устанавливаем все зависимости из requirements.txt, включая PyInstaller
+    - name: Install dependencies from requirements.txt
       run: |
         python -m pip install --upgrade pip
-        pip install ursina pyinstaller
+        pip install -r requirements.txt
+        pip install pyinstaller
 
-    # Шаг 4: Тестирование ядра (QA)
+    # Шаг 4: Автоматическое тестирование ядра (QA) перед компиляцией
     - name: Run logical core QA tests
       run: |
         python -m unittest spheres_of_power.py
 
-    # Шаг 5: Компиляция в один .exe файл
+    # Шаг 5: Сборка игры в один монолитный файл .exe через PyInstaller
     - name: Compile game via PyInstaller
       run: |
         pyinstaller --onefile --noconsole --name "SpheresOfPower" --add-data "assets;assets" spheres_of_power.py
 
-    # Шаг 6: Сохраняем артефакт (работает при любом пуше для проверки стабильности)
+    # Шаг 6: Загрузка сборки в артефакты текущего запуска (для тестирования веток)
     - name: Upload Artifact (.EXE)
       uses: actions/upload-artifact@v4
       with:
@@ -68,4 +69,4 @@ jobs:
         draft: false
         prerelease: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Токен авторизации, предоставляется GitHub автоматически
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
