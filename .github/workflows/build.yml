@@ -1,1 +1,71 @@
+name: Build and Release Spheres of Power
 
+# Триггер: запускаем сборку при пушах в main, а также ВСЕГДА, когда создается тег, начинающийся на 'v' (например, v1.0.0)
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+    # Шаг 1: Скачиваем исходный код
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Шаг 2: Устанавливаем Python
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    # Шаг 3: Устанавливаем зависимости и PyInstaller
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ursina pyinstaller
+
+    # Шаг 4: Тестирование ядра (QA)
+    - name: Run logical core QA tests
+      run: |
+        python -m unittest spheres_of_power.py
+
+    # Шаг 5: Компиляция в один .exe файл
+    - name: Compile game via PyInstaller
+      run: |
+        pyinstaller --onefile --noconsole --name "SpheresOfPower" --add-data "assets;assets" spheres_of_power.py
+
+    # Шаг 6: Сохраняем артефакт (работает при любом пуше для проверки стабильности)
+    - name: Upload Artifact (.EXE)
+      uses: actions/upload-artifact@v4
+      with:
+        name: SpheresOfPower-Windows-Build
+        path: dist/SpheresOfPower.exe
+        retention-days: 7
+
+    # Шаг 7: Автоматическая публикация на GitHub Releases (срабатывает ТОЛЬКО при пуше тега)
+    - name: Create GitHub Release and Upload Asset
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/SpheresOfPower.exe
+        name: Release ${{ github.ref_name }}
+        body: |
+          🌌 **Автоматический релиз трехмерных шахмат «Сферы Власти»!**
+          
+          **Что нового в этой версии:**
+          * Стабильная сборка игрового клиента под Windows.
+          * Интегрирован сетевой мультиплеер и система блиц-таймеров.
+          * Добавлена кастомизация цвета фракций и внутриигровой текстовый чат.
+          
+          *Сборка сгенерирована автоматически с помощью GitHub Actions.*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Токен авторизации, предоставляется GitHub автоматически
