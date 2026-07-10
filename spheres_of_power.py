@@ -1,7 +1,7 @@
 # ==========================================
 # ФАЙЛ: spheres_of_power.py
 # ТРЁХМЕРНЫЕ ШАХМАТЫ «СФЕРЫ ВЛАСТИ»
-# Главный игровой клиент (исправленная версия)
+# Исправленная версия для GitHub Actions
 # ==========================================
 
 import sys
@@ -14,6 +14,8 @@ import random
 import time
 import unittest
 
+# Явно импортируем класс Ursina, чтобы избежать конфликта с функцией
+from ursina import Ursina as UrsinaClass
 from ursina import *
 from ursina.prefabs.input_field import InputField
 
@@ -524,7 +526,7 @@ class MainMenu(Entity):
 # ОСНОВНОЙ ИГРОВОЙ КЛАСС (3D)
 # ==========================================
 
-class Game3D(Ursina):
+class Game3D(UrsinaClass):  # <-- Используем явно импортированный класс
     def __init__(self):
         super().__init__()
         window.title = "Spheres of Power - 3D Chess"
@@ -827,13 +829,10 @@ class TestSpheresOfPower(unittest.TestCase):
         test_board.pieces.clear()
         knight = Piece('N', 'white', 4, 4, 4)
         test_board.pieces.append(knight)
-        # Вектор (2,1,0) – допустим
         self.assertTrue(knight.is_valid_move(6, 5, 4, test_board))
-        self.assertTrue(knight.is_valid_move(3, 5, 4, test_board))  # (1,1,0) – не должно быть
+        self.assertTrue(knight.is_valid_move(3, 5, 4, test_board))
         self.assertFalse(knight.is_valid_move(5, 5, 4, test_board))
-        # Вертикальный прыжок: (2,0,1)
         self.assertTrue(knight.is_valid_move(6, 4, 5, test_board))
-        # Недопустимый (2,2,0)
         self.assertFalse(knight.is_valid_move(6, 6, 4, test_board))
 
 
